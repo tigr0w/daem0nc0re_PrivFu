@@ -29,18 +29,16 @@ namespace NamedPipeImpersonation.Handler
 
                 try
                 {
-                    int methodId = Convert.ToInt32(options.GetValue("method"));
+                    var methodId = (uint)Convert.ToInt32(options.GetValue("method"));
 
-                    if (methodId == 0)
-                        Globals.UseDropper = false;
-                    else if (methodId == 1)
-                        Globals.UseDropper = true;
+                    if (methodId < 3)
+                        Globals.MethodId = methodId;
                     else
-                        break;
+                        throw new ArgumentException();
                 }
                 catch
                 {
-                    Console.WriteLine("[-] Failed to specify method.");
+                    Console.WriteLine("[-] Failed to specify method, or invalid method ID.");
                     break;
                 }
 

