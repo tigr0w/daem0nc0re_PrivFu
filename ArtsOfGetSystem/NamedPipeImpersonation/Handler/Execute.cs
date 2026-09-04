@@ -42,7 +42,7 @@ namespace NamedPipeImpersonation.Handler
                     break;
                 }
 
-                Modules.GetSystemWithNamedPipe();
+                Modules.GetSystemWithNamedPipe(options.GetValue("command"));
             } while (false);
 
             Console.WriteLine();

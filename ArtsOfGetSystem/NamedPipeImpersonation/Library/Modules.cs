@@ -15,7 +15,7 @@ namespace NamedPipeImpersonation.Library
 
     internal class Modules
     {
-        public static bool GetSystemWithNamedPipe()
+        public static bool GetSystemWithNamedPipe(string command)
         {
             var bSuccess = false;
             var isImpersonated = false;
@@ -165,7 +165,7 @@ namespace NamedPipeImpersonation.Library
                 bSuccess = NativeMethods.CreateProcessAsUser(
                     hPrimaryToken,
                     null,
-                    Environment.GetEnvironmentVariable("COMSPEC"),
+                    command,
                     IntPtr.Zero,
                     IntPtr.Zero,
                     false,
