@@ -110,7 +110,7 @@ namespace NamedPipeImpersonation.Library
                         NativeMethods.NtWaitForSingleObject(Globals.PipeEventHandle, false, IntPtr.Zero);
                         NativeMethods.NtClose(Globals.PipeEventHandle);
 
-                        if (Helpers.CompareIgnoreCase(pipeMessage, "timeout"))
+                        if (string.Compare(pipeMessage, "timeout", true) == 0)
                         {
                             Console.WriteLine("[-] Timeout. Maybe blocked by anti-virus.");
                         }

@@ -177,10 +177,10 @@ namespace NamedPipeImpersonation.Interop
 
     internal enum ERROR_CONTROL
     {
-        IGNORE,
-        NORMAL,
-        SEVERE,
-        CRITICAL
+        Ignore,
+        Normal,
+        Severe,
+        Critical
     }
 
     [Flags]
@@ -373,24 +373,24 @@ namespace NamedPipeImpersonation.Interop
     [Flags]
     internal enum SE_GROUP_ATTRIBUTES : uint
     {
-        MANDATORY = 0x00000001,
-        ENABLED_BY_DEFAULT = 0x00000002,
-        ENABLED = 0x00000004,
-        OWNER = 0x00000008,
-        USE_FOR_DENY_ONLY = 0x00000010,
-        INTEGRITY = 0x00000020,
-        INTEGRITY_ENABLED = 0x00000040,
-        RESOURCE = 0x20000000,
-        LOGON_ID = 0xC0000000
+        Mandatory = 0x00000001,
+        EnabledByDefault = 0x00000002,
+        Enabled = 0x00000004,
+        Owner = 0x00000008,
+        UseForDenyOnly = 0x00000010,
+        Integrity = 0x00000020,
+        IntegrityEnabled = 0x00000040,
+        Resource = 0x20000000,
+        LogonId = 0xC0000000
     }
 
     [Flags]
     internal enum SE_PRIVILEGE_ATTRIBUTES : uint
     {
-        ENABLED_BY_DEFAULT = 0x00000001,
-        ENABLED = 0x00000002,
-        REMOVED = 0X00000004,
-        USED_FOR_ACCESS = 0x80000000
+        EnabledByDefault = 0x00000001,
+        Enabled = 0x00000002,
+        Removed = 0X00000004,
+        UsedForAccess = 0x80000000
     }
 
     internal enum SECURITY_IMPERSONATION_LEVEL
@@ -420,13 +420,13 @@ namespace NamedPipeImpersonation.Interop
 
     internal enum SERVICE_TYPE
     {
-        KERNEL_DRIVER = 0x00000001,
-        FILE_SYSTEM_DRIVER = 0x00000002,
-        ADAPTER = 0x00000004,
-        RECOGNIZER_DRIVER = 0x00000008,
-        WIN32_OWN_PROCESS = 0x00000010,
-        WIN32_SHARE_PROCESS = 0x00000020,
-        INTERACTIVE_PROCESS = 0x00000100,
+        KernelDriver = 0x00000001,
+        FileSystemDriver = 0x00000002,
+        Adapter = 0x00000004,
+        RecognizerDriver = 0x00000008,
+        Win32OwnProcess = 0x00000010,
+        Win32ShareProcess = 0x00000020,
+        InteractiveProcess = 0x00000100,
     }
 
     internal enum SID_NAME_USE
@@ -446,11 +446,11 @@ namespace NamedPipeImpersonation.Interop
 
     internal enum START_TYPE
     {
-        BOOT_START,
-        SYSTEM_START,
-        AUTO_START,
-        DEMAND_START,
-        DISABLED
+        Boot,
+        System,
+        Auto,
+        Demand,
+        Disabled
     }
 
     internal enum TOKEN_INFORMATION_CLASS
@@ -543,18 +543,18 @@ namespace NamedPipeImpersonation.Interop
 
     internal enum USER_INFO_FILTER
     {
-        INTERDOMAIN_TRUST_ACCOUNT = 0x8,
-        NORMAL_ACCOUNT = 0x2,
-        PROXY_ACCOUNT = 0x4,
-        SERVER_TRUST_ACCOUNT = 0x20,
-        TEMP_DUPLICATE_ACCOUNT = 0x1,
-        WORKSTATION_TRUST_ACCOUNT = 0x10
+        InterDomainTrustAccount = 0x8,
+        NormalAccount = 0x2,
+        ProxyAccount = 0x4,
+        ServerTrustAccount = 0x20,
+        TempDuplicateAccount = 0x1,
+        WorkstationTrustAccount = 0x10
     }
 
     internal enum USER_PRIVS
     {
-        GUEST,
-        USER,
-        ADMIN
+        Guest,
+        User,
+        Admin
     }
 }

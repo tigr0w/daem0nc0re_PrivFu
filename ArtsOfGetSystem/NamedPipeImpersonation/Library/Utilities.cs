@@ -21,41 +21,44 @@ namespace NamedPipeImpersonation.Library
             var bSuccess = false;
             exception = null;
 
-            try
+            unsafe
             {
-                ITaskDefinition definition;
-                IExecAction action;
-                ITaskFolder folder;
-                IRegisteredTask task;
-                var scheduler = new TaskScheduler.TaskScheduler();
-                scheduler.Connect();
+                try
+                {
+                    ITaskDefinition definition;
+                    IExecAction action;
+                    ITaskFolder folder;
+                    IRegisteredTask task;
+                    var scheduler = new TaskScheduler.TaskScheduler();
+                    scheduler.Connect();
 
-                definition = scheduler.NewTask(0);
-                definition.RegistrationInfo.Description = taskname;
-                definition.Principal.UserId = "SYSTEM";
-                definition.Principal.RunLevel = _TASK_RUNLEVEL.TASK_RUNLEVEL_HIGHEST;
-                definition.Settings.AllowDemandStart = true;
-                definition.Settings.DisallowStartIfOnBatteries = false;
+                    definition = scheduler.NewTask(0);
+                    definition.RegistrationInfo.Description = taskname;
+                    definition.Principal.UserId = "SYSTEM";
+                    definition.Principal.RunLevel = _TASK_RUNLEVEL.TASK_RUNLEVEL_HIGHEST;
+                    definition.Settings.AllowDemandStart = true;
+                    definition.Settings.DisallowStartIfOnBatteries = false;
 
-                action = (IExecAction)definition.Actions.Create(_TASK_ACTION_TYPE.TASK_ACTION_EXEC);
-                action.Path = binpath;
-                action.Arguments = args;
+                    action = (IExecAction)definition.Actions.Create(_TASK_ACTION_TYPE.TASK_ACTION_EXEC);
+                    action.Path = binpath;
+                    action.Arguments = args;
 
-                folder = scheduler.GetFolder("\\");
-                task = folder.RegisterTaskDefinition(
-                    taskname,
-                    definition,
-                    (int)_TASK_CREATION.TASK_CREATE_OR_UPDATE,
-                    null,
-                    null,
-                    _TASK_LOGON_TYPE.TASK_LOGON_SERVICE_ACCOUNT);
-                task.Run(null);
-                folder.DeleteTask(taskname, 0);
-                bSuccess = true;
-            }
-            catch (Exception ex)
-            {
-                exception = ex;
+                    folder = scheduler.GetFolder("\\");
+                    task = folder.RegisterTaskDefinition(
+                        taskname,
+                        definition,
+                        (int)_TASK_CREATION.TASK_CREATE_OR_UPDATE,
+                        null,
+                        null,
+                        _TASK_LOGON_TYPE.TASK_LOGON_SERVICE_ACCOUNT);
+                    task.Run(null);
+                    folder.DeleteTask(taskname, 0);
+                    bSuccess = true;
+                }
+                catch (Exception ex)
+                {
+                    exception = ex;
+                }
             }
 
             return bSuccess;
@@ -92,7 +95,7 @@ namespace NamedPipeImpersonation.Library
                 {
                     var fqdn = Helpers.GetCurrentDomainName();
 
-                    if (!Helpers.CompareIgnoreCase(fqdn, Environment.MachineName))
+                    if (string.Compare(fqdn, Environment.MachineName, true) != 0)
                     {
                         upn = Environment.UserName;
                         domain = fqdn;
@@ -147,9 +150,9 @@ namespace NamedPipeImpersonation.Library
 
                     foreach (var available in availablePrivs)
                     {
-                        if (Helpers.CompareIgnoreCase(available.Key, priv))
+                        if (string.Compare(available.Key, priv, true) == 0)
                         {
-                            if ((available.Value & SE_PRIVILEGE_ATTRIBUTES.ENABLED) != 0)
+                            if ((available.Value & SE_PRIVILEGE_ATTRIBUTES.Enabled) != 0)
                             {
                                 adjustedPrivs[priv] = true;
                             }
@@ -163,7 +166,7 @@ namespace NamedPipeImpersonation.Library
                                     priv,
                                     out tokenPrivileges.Privileges[0].Luid))
                                 {
-                                    tokenPrivileges.Privileges[0].Attributes = (int)SE_PRIVILEGE_ATTRIBUTES.ENABLED;
+                                    tokenPrivileges.Privileges[0].Attributes = (int)SE_PRIVILEGE_ATTRIBUTES.Enabled;
                                     Marshal.StructureToPtr(tokenPrivileges, pTokenPrivileges, true);
 
                                     adjustedPrivs[priv] = NativeMethods.AdjustTokenPrivileges(
@@ -263,7 +266,7 @@ namespace NamedPipeImpersonation.Library
                 if (nGroupCount > 0)
                 {
                     int nUnitSize = Marshal.SizeOf(typeof(SID_AND_ATTRIBUTES));
-                    var attributes = (int)(SE_GROUP_ATTRIBUTES.MANDATORY | SE_GROUP_ATTRIBUTES.ENABLED);
+                    var attributes = (int)(SE_GROUP_ATTRIBUTES.Mandatory | SE_GROUP_ATTRIBUTES.Enabled);
                     pTokenGroups = Marshal.AllocHGlobal(nTokenGroupsSize);
                     nGroupCount = 0;
                     Helpers.ZeroMemory(pTokenGroups, nTokenGroupsSize);
@@ -388,9 +391,9 @@ namespace NamedPipeImpersonation.Library
                     Globals.ServiceName,
                     Globals.ServiceName,
                     ACCESS_MASK.SERVICE_ALL_ACCESS,
-                    SERVICE_TYPE.WIN32_OWN_PROCESS,
-                    START_TYPE.DEMAND_START,
-                    ERROR_CONTROL.NORMAL,
+                    SERVICE_TYPE.Win32OwnProcess,
+                    START_TYPE.Demand,
+                    ERROR_CONTROL.Normal,
                     command,
                     null,
                     IntPtr.Zero,

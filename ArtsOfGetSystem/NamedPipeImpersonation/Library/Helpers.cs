@@ -13,12 +13,6 @@ namespace NamedPipeImpersonation.Library
 
     internal class Helpers
     {
-        public static bool CompareIgnoreCase(string strA, string strB)
-        {
-            return (string.Compare(strA, strB, StringComparison.OrdinalIgnoreCase) == 0);
-        }
-
-
         public static bool ConvertSidToAccountName(
             IntPtr pSid,
             out string name,
@@ -93,7 +87,7 @@ namespace NamedPipeImpersonation.Library
             error = NativeMethods.NetUserEnum(
                 null,
                 1,
-                USER_INFO_FILTER.NORMAL_ACCOUNT,
+                USER_INFO_FILTER.NormalAccount,
                 out IntPtr pDataBuffer,
                 nMaximumLength,
                 out int nEntries,
@@ -268,7 +262,7 @@ namespace NamedPipeImpersonation.Library
             {
                 foreach (ProcessModule module in Process.GetCurrentProcess().Modules)
                 {
-                    if (CompareIgnoreCase(Path.GetFileName(module.FileName), "ntdll.dll"))
+                    if (string.Compare(Path.GetFileName(module.FileName), "ntdll.dll", true) == 0)
                     {
                         pNtdll = module.BaseAddress;
                         dwFlags |= FormatMessageFlags.FORMAT_MESSAGE_FROM_HMODULE;
