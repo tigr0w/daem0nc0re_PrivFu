@@ -12,7 +12,7 @@ namespace NamedPipeClient
             {
                 try
                 {
-                    using (var pipeClient = new NamedPipeClientStream(".", args[0], PipeDirection.Out))
+                    using (var pipeClient = new NamedPipeClientStream("localhost", args[0], PipeDirection.Out))
                     {
                         var message = Encoding.ASCII.GetBytes(args[0]);
                         pipeClient.Connect(3000);

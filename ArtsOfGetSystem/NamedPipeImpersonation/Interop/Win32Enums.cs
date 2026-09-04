@@ -308,66 +308,40 @@ namespace NamedPipeImpersonation.Interop
     }
 
     [Flags]
-    internal enum PIPE_ACCESS : uint
-    {
-        INBOUND = 0x00000001,
-        OUTBOUND = 0x00000002,
-        DUPLEX = 0x00000003,
-        WRITE_DAC = 0x00040000,
-        WRITE_OWNER = 0x00080000,
-        FILE_FLAG_FIRST_PIPE_INSTANCE = 0x00080000,
-        ACCESS_SYSTEM_SECURITY = 0x01000000,
-        FILE_FLAG_OVERLAPPED = 0x40000000,
-        FILE_FLAG_WRITE_THROUGH = 0x80000000
-    }
-
-    internal enum PIPE_MODE
-    {
-        PIPE_WAIT = 0x00000000,
-        PIPE_NOWAIT = 0x00000001,
-        PIPE_READMODE_BYTE = 0x00000000,
-        PIPE_READMODE_MESSAGE = 0x00000002,
-        PIPE_TYPE_BYTE = 0x00000000,
-        PIPE_TYPE_MESSAGE = 0x00000004,
-        PIPE_ACCEPT_REMOTE_CLIENTS = 0x00000000,
-        PIPE_REJECT_REMOTE_CLIENTS = 0x00000008
-    }
-
-    [Flags]
     internal enum PROCESS_CREATION_FLAGS : uint
     {
-        NONE = 0x00000000,
-        DEBUG_PROCESS = 0x00000001,
-        DEBUG_ONLY_THIS_PROCESS = 0x00000002,
-        CREATE_SUSPENDED = 0x00000004,
-        DETACHED_PROCESS = 0x00000008,
-        CREATE_NEW_CONSOLE = 0x00000010,
-        NORMAL_PRIORITY_CLASS = 0x00000020,
-        IDLE_PRIORITY_CLASS = 0x00000040,
-        HIGH_PRIORITY_CLASS = 0x00000080,
-        REALTIME_PRIORITY_CLASS = 0x00000100,
-        CREATE_NEW_PROCESS_GROUP = 0x00000200,
-        CREATE_UNICODE_ENVIRONMENT = 0x00000400,
-        CREATE_SEPARATE_WOW_VDM = 0x00000800,
-        CREATE_SHARED_WOW_VDM = 0x00001000,
-        CREATE_FORCEDOS = 0x00002000,
-        BELOW_NORMAL_PRIORITY_CLASS = 0x00004000,
-        ABOVE_NORMAL_PRIORITY_CLASS = 0x00008000,
-        INHERIT_PARENT_AFFINITY = 0x00010000,
-        INHERIT_CALLER_PRIORITY = 0x00020000, // Deprecated
-        CREATE_PROTECTED_PROCESS = 0x00040000,
-        EXTENDED_STARTUPINFO_PRESENT = 0x00080000,
-        PROCESS_MODE_BACKGROUND_BEGIN = 0x00100000,
-        PROCESS_MODE_BACKGROUND_END = 0x00200000,
-        CREATE_SECURE_PROCESS = 0x00400000,
-        CREATE_BREAKAWAY_FROM_JOB = 0x01000000,
-        CREATE_PRESERVE_CODE_AUTHZ_LEVEL = 0x02000000,
-        CREATE_DEFAULT_ERROR_MODE = 0x04000000,
-        CREATE_NO_WINDOW = 0x08000000,
-        PROFILE_USER = 0x10000000,
-        PROFILE_KERNEL = 0x20000000,
-        PROFILE_SERVER = 0x40000000,
-        CREATE_IGNORE_SYSTEM_DEFAULT = 0x80000000
+        None = 0x00000000,
+        DebugProcess = 0x00000001,
+        DebugOnlyThisProcess = 0x00000002,
+        CreateSuspended = 0x00000004,
+        DetachedProcess = 0x00000008,
+        CreateNewConsole = 0x00000010,
+        NormalPriorityClass = 0x00000020,
+        IdlePriorityClass = 0x00000040,
+        HighPriorityClass = 0x00000080,
+        RealtimePriorityClass = 0x00000100,
+        CreateNewProcessGroup = 0x00000200,
+        CreateUnicodeEnvironment = 0x00000400,
+        CreateSeparateWowVdm = 0x00000800,
+        CreateSharedWowVdm = 0x00001000,
+        CreateForceDos = 0x00002000,
+        BelowNormalPriorityClass = 0x00004000,
+        AboveNormalPriorityClass = 0x00008000,
+        InheritParentAffinity = 0x00010000,
+        InheritCallerPriority = 0x00020000, // Deprecated
+        CreateProtectedProcess = 0x00040000,
+        ExtendedStartupInfoPresent = 0x00080000,
+        ProcessModeBackgroundBegin = 0x00100000,
+        ProcessModeBackgroundEnd = 0x00200000,
+        CreateSecureProcess = 0x00400000,
+        CreateBreakawayFromJob = 0x01000000,
+        CreatePreserveCodeAuthZLevel = 0x02000000,
+        CreateDefaultErrorMode = 0x04000000,
+        CreateNoWindow = 0x08000000,
+        ProfileUser = 0x10000000,
+        ProfileKernel = 0x20000000,
+        ProfileServer = 0x40000000,
+        CreateIgnoreSysteDefault = 0x80000000
     }
 
     [Flags]

