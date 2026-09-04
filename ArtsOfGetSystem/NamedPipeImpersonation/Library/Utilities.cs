@@ -147,39 +147,6 @@ namespace NamedPipeImpersonation.Library
         }
 
 
-        public static bool ImpersonateThreadToken(IntPtr hImpersonationToken)
-        {
-            IntPtr pImpersonationLevel = Marshal.AllocHGlobal(4);
-            var status = false;
-
-            if (NativeMethods.ImpersonateLoggedOnUser(hImpersonationToken))
-            {
-                NTSTATUS ntstatus = NativeMethods.NtQueryInformationToken(
-                    WindowsIdentity.GetCurrent().Token,
-                    TOKEN_INFORMATION_CLASS.TokenImpersonationLevel,
-                    pImpersonationLevel,
-                    4u,
-                    out uint _);
-
-                if (ntstatus == Win32Consts.STATUS_SUCCESS)
-                {
-                    var level = (SECURITY_IMPERSONATION_LEVEL)Marshal.ReadInt32(pImpersonationLevel);
-
-                    if (level == SECURITY_IMPERSONATION_LEVEL.SecurityImpersonation)
-                        status = true;
-                    else if (level == SECURITY_IMPERSONATION_LEVEL.SecurityDelegation)
-                        status = true;
-                    else
-                        status = false;
-                }
-            }
-
-            Marshal.FreeHGlobal(pImpersonationLevel);
-
-            return status;
-        }
-
-
         public static IntPtr StartNamedPipeClientService()
         {
             IntPtr hSCManager;

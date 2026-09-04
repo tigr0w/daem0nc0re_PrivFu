@@ -38,8 +38,6 @@ namespace NamedPipeImpersonation.Library
                 if (Helpers.IsCurrentProcessInJob())
                     creationFlags |= PROCESS_CREATION_FLAGS.CreateBreakawayFromJob;
 
-                Console.WriteLine("[DEBUG] {0}", creationFlags);
-
                 Globals.ConnectEventHandle = NativeMethods.CreateEvent(IntPtr.Zero, true, false, "ConnectEvent");
                 Globals.PipeEventHandle = NativeMethods.CreateEvent(IntPtr.Zero, true, false, "ServiceEvent");
 
