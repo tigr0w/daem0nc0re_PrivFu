@@ -69,9 +69,6 @@ namespace NamedPipeImpersonation.Interop
             out IntPtr phNewToken);
 
         [DllImport("advapi32.dll", SetLastError = true)]
-        public static extern bool ImpersonateLoggedOnUser(IntPtr Token);
-
-        [DllImport("advapi32.dll", SetLastError = true)]
         public static extern bool ImpersonateNamedPipeClient(SafeHandle hNamedPipe);
 
         [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Auto)]
@@ -132,9 +129,6 @@ namespace NamedPipeImpersonation.Interop
             int nSize,
             IntPtr Arguments);
 
-        [DllImport("kernel32.dll", SetLastError = true)]
-        public static extern bool SetEvent(IntPtr hEvent);
-
         /*
          * ntdll.dll
          */
@@ -153,6 +147,11 @@ namespace NamedPipeImpersonation.Interop
             IntPtr TokenInformation,
             uint TokenInformationLength,
             out uint ReturnLength);
+
+        [DllImport("ntdll.dll")]
+        public static extern NTSTATUS NtSetEvent(
+            IntPtr EventHandle,
+            out int PreviousState);
 
         [DllImport("ntdll.dll")]
         public static extern NTSTATUS NtWaitForSingleObject(

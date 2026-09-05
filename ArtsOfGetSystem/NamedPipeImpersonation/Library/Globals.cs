@@ -5,10 +5,11 @@ namespace NamedPipeImpersonation.Library
     internal class Globals
     {
         public static string BinaryPath { get; set; } = null;
-        public static IntPtr ConnectEventHandle { get; set; } = IntPtr.Zero;
-        public static IntPtr PipeEventHandle { get; set; } = IntPtr.Zero;
+        public static IntPtr ConnectionEvent { get; set; } = IntPtr.Zero;
+        public static IntPtr ThreadCompletionEvent { get; set; } = IntPtr.Zero;
         public static string ServiceName { get; } = "PrivFuPipeSvc";
         public static int Timeout { get; set; } = 3000;
+        public static bool PipeFound { get; set; } = false;
         // 0: Command Service, 1: Dropper Service, 2: Scheduled Tasks
         public static uint MethodId { get; set; } = 0;
         public static string PoshTemplate { get; } =

