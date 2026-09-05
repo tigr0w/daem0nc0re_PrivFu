@@ -224,7 +224,7 @@ namespace NamedPipeImpersonation.Library
             {
                 foreach (var f in System.IO.Directory.EnumerateFiles(@"\\.\pipe"))
                 {
-                    if (string.Compare(System.IO.Path.GetFileName(f), "PrivFuPipeSvc", true) == 0)
+                    if (string.Compare(System.IO.Path.GetFileName(f), Globals.ServiceName, true) == 0)
                     {
                         Globals.PipeFound = true;
                         break;
@@ -317,7 +317,7 @@ namespace NamedPipeImpersonation.Library
             {
                 foreach (var f in System.IO.Directory.EnumerateFiles(@"\\.\pipe"))
                 {
-                    if (string.Compare(System.IO.Path.GetFileName(f), "PrivFuPipeSvc", true) == 0)
+                    if (string.Compare(System.IO.Path.GetFileName(f), Globals.ServiceName, true) == 0)
                     {
                         Globals.PipeFound = true;
                         break;
