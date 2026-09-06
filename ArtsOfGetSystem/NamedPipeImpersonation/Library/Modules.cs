@@ -330,6 +330,8 @@ namespace NamedPipeImpersonation.Library
                     {
                         Console.WriteLine("[+] Named pipe client service is deleted successfully.");
                     }
+
+                    NativeMethods.CloseServiceHandle(hService);
                 }
 
                 try
