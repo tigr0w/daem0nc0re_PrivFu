@@ -11,7 +11,7 @@ namespace NamedPipeImpersonation.Library
         public static int Timeout { get; set; } = 3000;
         public static bool PipeFound { get; set; } = false;
         // 0: Command Service, 1: Dropper Service, 2: Scheduled Tasks
-        public static uint MethodId { get; set; } = 0;
+        public static PipeClientMethodType MethodId { get; set; } = 0;
         public static string PoshTemplate { get; } =
             "$d = [System.IO.Pipes.PipeDirection]::Out; " +
             "$c = [System.IO.Pipes.NamedPipeClientStream]::new(\"localhost\", \"{0}\", $d); " + 

